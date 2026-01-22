@@ -451,6 +451,288 @@ DWORD WINAPI HttpServerThread(LPVOID lpParam) {
                     sendHttpResponse(clientSocket, 200, "application/json", ss.str());
                 }
                 // =============================================================================
+                // OPTIMIZED BATCH ENDPOINTS (Token-efficient combined operations)
+                // =============================================================================
+                else if (path == "/GetAllRegisters") {
+                    // Return all general-purpose registers in a single call
+                    std::stringstream ss;
+                    ss << "{";
+#ifdef _WIN64
+                    ss << "\"rax\":\"0x" << std::hex << Script::Register::Get(Script::Register::RAX) << "\",";
+                    ss << "\"rbx\":\"0x" << std::hex << Script::Register::Get(Script::Register::RBX) << "\",";
+                    ss << "\"rcx\":\"0x" << std::hex << Script::Register::Get(Script::Register::RCX) << "\",";
+                    ss << "\"rdx\":\"0x" << std::hex << Script::Register::Get(Script::Register::RDX) << "\",";
+                    ss << "\"rsi\":\"0x" << std::hex << Script::Register::Get(Script::Register::RSI) << "\",";
+                    ss << "\"rdi\":\"0x" << std::hex << Script::Register::Get(Script::Register::RDI) << "\",";
+                    ss << "\"rbp\":\"0x" << std::hex << Script::Register::Get(Script::Register::RBP) << "\",";
+                    ss << "\"rsp\":\"0x" << std::hex << Script::Register::Get(Script::Register::RSP) << "\",";
+                    ss << "\"rip\":\"0x" << std::hex << Script::Register::Get(Script::Register::RIP) << "\",";
+                    ss << "\"r8\":\"0x" << std::hex << Script::Register::Get(Script::Register::R8) << "\",";
+                    ss << "\"r9\":\"0x" << std::hex << Script::Register::Get(Script::Register::R9) << "\",";
+                    ss << "\"r10\":\"0x" << std::hex << Script::Register::Get(Script::Register::R10) << "\",";
+                    ss << "\"r11\":\"0x" << std::hex << Script::Register::Get(Script::Register::R11) << "\",";
+                    ss << "\"r12\":\"0x" << std::hex << Script::Register::Get(Script::Register::R12) << "\",";
+                    ss << "\"r13\":\"0x" << std::hex << Script::Register::Get(Script::Register::R13) << "\",";
+                    ss << "\"r14\":\"0x" << std::hex << Script::Register::Get(Script::Register::R14) << "\",";
+                    ss << "\"r15\":\"0x" << std::hex << Script::Register::Get(Script::Register::R15) << "\"";
+#else
+                    ss << "\"eax\":\"0x" << std::hex << Script::Register::Get(Script::Register::EAX) << "\",";
+                    ss << "\"ebx\":\"0x" << std::hex << Script::Register::Get(Script::Register::EBX) << "\",";
+                    ss << "\"ecx\":\"0x" << std::hex << Script::Register::Get(Script::Register::ECX) << "\",";
+                    ss << "\"edx\":\"0x" << std::hex << Script::Register::Get(Script::Register::EDX) << "\",";
+                    ss << "\"esi\":\"0x" << std::hex << Script::Register::Get(Script::Register::ESI) << "\",";
+                    ss << "\"edi\":\"0x" << std::hex << Script::Register::Get(Script::Register::EDI) << "\",";
+                    ss << "\"ebp\":\"0x" << std::hex << Script::Register::Get(Script::Register::EBP) << "\",";
+                    ss << "\"esp\":\"0x" << std::hex << Script::Register::Get(Script::Register::ESP) << "\",";
+                    ss << "\"eip\":\"0x" << std::hex << Script::Register::Get(Script::Register::EIP) << "\"";
+#endif
+                    ss << "}";
+                    sendHttpResponse(clientSocket, 200, "application/json", ss.str());
+                }
+                else if (path == "/GetAllFlags") {
+                    // Return all CPU flags in a single call
+                    std::stringstream ss;
+                    ss << "{";
+                    ss << "\"zf\":" << (Script::Flag::GetZF() ? "true" : "false") << ",";
+                    ss << "\"cf\":" << (Script::Flag::GetCF() ? "true" : "false") << ",";
+                    ss << "\"of\":" << (Script::Flag::GetOF() ? "true" : "false") << ",";
+                    ss << "\"sf\":" << (Script::Flag::GetSF() ? "true" : "false") << ",";
+                    ss << "\"pf\":" << (Script::Flag::GetPF() ? "true" : "false") << ",";
+                    ss << "\"af\":" << (Script::Flag::GetAF() ? "true" : "false") << ",";
+                    ss << "\"df\":" << (Script::Flag::GetDF() ? "true" : "false") << ",";
+                    ss << "\"tf\":" << (Script::Flag::GetTF() ? "true" : "false") << ",";
+                    ss << "\"if\":" << (Script::Flag::GetIF() ? "true" : "false");
+                    ss << "}";
+                    sendHttpResponse(clientSocket, 200, "application/json", ss.str());
+                }
+                else if (path == "/GetContext") {
+                    // Return complete CPU context: registers + flags + current instruction
+                    duint ip = Script::Register::Get(REG_IP);
+                    DISASM_INSTR instr;
+                    DbgDisasmAt(ip, &instr);
+                    
+                    std::stringstream ss;
+                    ss << "{";
+                    // Registers
+                    ss << "\"regs\":{";
+#ifdef _WIN64
+                    ss << "\"rax\":\"0x" << std::hex << Script::Register::Get(Script::Register::RAX) << "\",";
+                    ss << "\"rbx\":\"0x" << std::hex << Script::Register::Get(Script::Register::RBX) << "\",";
+                    ss << "\"rcx\":\"0x" << std::hex << Script::Register::Get(Script::Register::RCX) << "\",";
+                    ss << "\"rdx\":\"0x" << std::hex << Script::Register::Get(Script::Register::RDX) << "\",";
+                    ss << "\"rsi\":\"0x" << std::hex << Script::Register::Get(Script::Register::RSI) << "\",";
+                    ss << "\"rdi\":\"0x" << std::hex << Script::Register::Get(Script::Register::RDI) << "\",";
+                    ss << "\"rbp\":\"0x" << std::hex << Script::Register::Get(Script::Register::RBP) << "\",";
+                    ss << "\"rsp\":\"0x" << std::hex << Script::Register::Get(Script::Register::RSP) << "\",";
+                    ss << "\"rip\":\"0x" << std::hex << ip << "\",";
+                    ss << "\"r8\":\"0x" << std::hex << Script::Register::Get(Script::Register::R8) << "\",";
+                    ss << "\"r9\":\"0x" << std::hex << Script::Register::Get(Script::Register::R9) << "\",";
+                    ss << "\"r10\":\"0x" << std::hex << Script::Register::Get(Script::Register::R10) << "\",";
+                    ss << "\"r11\":\"0x" << std::hex << Script::Register::Get(Script::Register::R11) << "\",";
+                    ss << "\"r12\":\"0x" << std::hex << Script::Register::Get(Script::Register::R12) << "\",";
+                    ss << "\"r13\":\"0x" << std::hex << Script::Register::Get(Script::Register::R13) << "\",";
+                    ss << "\"r14\":\"0x" << std::hex << Script::Register::Get(Script::Register::R14) << "\",";
+                    ss << "\"r15\":\"0x" << std::hex << Script::Register::Get(Script::Register::R15) << "\"";
+#else
+                    ss << "\"eax\":\"0x" << std::hex << Script::Register::Get(Script::Register::EAX) << "\",";
+                    ss << "\"ebx\":\"0x" << std::hex << Script::Register::Get(Script::Register::EBX) << "\",";
+                    ss << "\"ecx\":\"0x" << std::hex << Script::Register::Get(Script::Register::ECX) << "\",";
+                    ss << "\"edx\":\"0x" << std::hex << Script::Register::Get(Script::Register::EDX) << "\",";
+                    ss << "\"esi\":\"0x" << std::hex << Script::Register::Get(Script::Register::ESI) << "\",";
+                    ss << "\"edi\":\"0x" << std::hex << Script::Register::Get(Script::Register::EDI) << "\",";
+                    ss << "\"ebp\":\"0x" << std::hex << Script::Register::Get(Script::Register::EBP) << "\",";
+                    ss << "\"esp\":\"0x" << std::hex << Script::Register::Get(Script::Register::ESP) << "\",";
+                    ss << "\"eip\":\"0x" << std::hex << ip << "\"";
+#endif
+                    ss << "},";
+                    // Flags
+                    ss << "\"flags\":{";
+                    ss << "\"zf\":" << (Script::Flag::GetZF() ? "true" : "false") << ",";
+                    ss << "\"cf\":" << (Script::Flag::GetCF() ? "true" : "false") << ",";
+                    ss << "\"of\":" << (Script::Flag::GetOF() ? "true" : "false") << ",";
+                    ss << "\"sf\":" << (Script::Flag::GetSF() ? "true" : "false") << ",";
+                    ss << "\"pf\":" << (Script::Flag::GetPF() ? "true" : "false");
+                    ss << "},";
+                    // Current instruction
+                    ss << "\"instr\":{";
+                    ss << "\"addr\":\"0x" << std::hex << ip << "\",";
+                    ss << "\"asm\":\"" << instr.instruction << "\",";
+                    ss << "\"size\":" << std::dec << instr.instr_size;
+                    ss << "}";
+                    ss << "}";
+                    sendHttpResponse(clientSocket, 200, "application/json", ss.str());
+                }
+                else if (path == "/StepWithContext") {
+                    // Step type from query params: "in", "over", "out" (default: "in")
+                    std::string stepType = queryParams["type"];
+                    if (stepType.empty()) stepType = "in";
+                    
+                    // Execute the step
+                    if (stepType == "over") {
+                        Script::Debug::StepOver();
+                    } else if (stepType == "out") {
+                        Script::Debug::StepOut();
+                    } else {
+                        Script::Debug::StepIn();
+                    }
+                    
+                    // Get new context after step
+                    duint ip = Script::Register::Get(REG_IP);
+                    DISASM_INSTR instr;
+                    DbgDisasmAt(ip, &instr);
+                    
+                    std::stringstream ss;
+                    ss << "{";
+                    ss << "\"step\":\"" << stepType << "\",";
+                    // Registers
+                    ss << "\"regs\":{";
+#ifdef _WIN64
+                    ss << "\"rax\":\"0x" << std::hex << Script::Register::Get(Script::Register::RAX) << "\",";
+                    ss << "\"rbx\":\"0x" << std::hex << Script::Register::Get(Script::Register::RBX) << "\",";
+                    ss << "\"rcx\":\"0x" << std::hex << Script::Register::Get(Script::Register::RCX) << "\",";
+                    ss << "\"rdx\":\"0x" << std::hex << Script::Register::Get(Script::Register::RDX) << "\",";
+                    ss << "\"rsi\":\"0x" << std::hex << Script::Register::Get(Script::Register::RSI) << "\",";
+                    ss << "\"rdi\":\"0x" << std::hex << Script::Register::Get(Script::Register::RDI) << "\",";
+                    ss << "\"rbp\":\"0x" << std::hex << Script::Register::Get(Script::Register::RBP) << "\",";
+                    ss << "\"rsp\":\"0x" << std::hex << Script::Register::Get(Script::Register::RSP) << "\",";
+                    ss << "\"rip\":\"0x" << std::hex << ip << "\",";
+                    ss << "\"r8\":\"0x" << std::hex << Script::Register::Get(Script::Register::R8) << "\",";
+                    ss << "\"r9\":\"0x" << std::hex << Script::Register::Get(Script::Register::R9) << "\",";
+                    ss << "\"r10\":\"0x" << std::hex << Script::Register::Get(Script::Register::R10) << "\",";
+                    ss << "\"r11\":\"0x" << std::hex << Script::Register::Get(Script::Register::R11) << "\",";
+                    ss << "\"r12\":\"0x" << std::hex << Script::Register::Get(Script::Register::R12) << "\",";
+                    ss << "\"r13\":\"0x" << std::hex << Script::Register::Get(Script::Register::R13) << "\",";
+                    ss << "\"r14\":\"0x" << std::hex << Script::Register::Get(Script::Register::R14) << "\",";
+                    ss << "\"r15\":\"0x" << std::hex << Script::Register::Get(Script::Register::R15) << "\"";
+#else
+                    ss << "\"eax\":\"0x" << std::hex << Script::Register::Get(Script::Register::EAX) << "\",";
+                    ss << "\"ebx\":\"0x" << std::hex << Script::Register::Get(Script::Register::EBX) << "\",";
+                    ss << "\"ecx\":\"0x" << std::hex << Script::Register::Get(Script::Register::ECX) << "\",";
+                    ss << "\"edx\":\"0x" << std::hex << Script::Register::Get(Script::Register::EDX) << "\",";
+                    ss << "\"esi\":\"0x" << std::hex << Script::Register::Get(Script::Register::ESI) << "\",";
+                    ss << "\"edi\":\"0x" << std::hex << Script::Register::Get(Script::Register::EDI) << "\",";
+                    ss << "\"ebp\":\"0x" << std::hex << Script::Register::Get(Script::Register::EBP) << "\",";
+                    ss << "\"esp\":\"0x" << std::hex << Script::Register::Get(Script::Register::ESP) << "\",";
+                    ss << "\"eip\":\"0x" << std::hex << ip << "\"";
+#endif
+                    ss << "},";
+                    // Flags
+                    ss << "\"flags\":{";
+                    ss << "\"zf\":" << (Script::Flag::GetZF() ? "true" : "false") << ",";
+                    ss << "\"cf\":" << (Script::Flag::GetCF() ? "true" : "false") << ",";
+                    ss << "\"of\":" << (Script::Flag::GetOF() ? "true" : "false") << ",";
+                    ss << "\"sf\":" << (Script::Flag::GetSF() ? "true" : "false") << ",";
+                    ss << "\"pf\":" << (Script::Flag::GetPF() ? "true" : "false");
+                    ss << "},";
+                    // Current instruction
+                    ss << "\"instr\":{";
+                    ss << "\"addr\":\"0x" << std::hex << ip << "\",";
+                    ss << "\"asm\":\"" << instr.instruction << "\",";
+                    ss << "\"size\":" << std::dec << instr.instr_size;
+                    ss << "}";
+                    ss << "}";
+                    sendHttpResponse(clientSocket, 200, "application/json", ss.str());
+                }
+                else if (path == "/GetMemoryInfo") {
+                    // Get comprehensive memory info for an address in one call
+                    std::string addrStr = queryParams["addr"];
+                    if (addrStr.empty()) {
+                        sendHttpResponse(clientSocket, 400, "text/plain", "Missing address parameter");
+                        continue;
+                    }
+                    
+                    duint addr = 0;
+                    try {
+                        if (addrStr.substr(0, 2) == "0x") {
+                            addr = std::stoull(addrStr.substr(2), nullptr, 16);
+                        } else {
+                            addr = std::stoull(addrStr, nullptr, 16);
+                        }
+                    } catch (const std::exception& e) {
+                        sendHttpResponse(clientSocket, 400, "text/plain", "Invalid address format");
+                        continue;
+                    }
+                    
+                    // Get all memory info
+                    duint size = 0;
+                    duint baseAddr = DbgMemFindBaseAddr(addr, &size);
+                    bool isValid = Script::Memory::IsValidPtr(addr);
+                    unsigned int protect = Script::Memory::GetProtect(addr);
+                    
+                    std::stringstream ss;
+                    ss << "{";
+                    ss << "\"addr\":\"0x" << std::hex << addr << "\",";
+                    ss << "\"valid\":" << (isValid ? "true" : "false") << ",";
+                    ss << "\"base\":\"0x" << std::hex << baseAddr << "\",";
+                    ss << "\"size\":\"0x" << std::hex << size << "\",";
+                    ss << "\"protect\":\"0x" << std::hex << protect << "\"";
+                    ss << "}";
+                    sendHttpResponse(clientSocket, 200, "application/json", ss.str());
+                }
+                else if (path == "/Analyze") {
+                    // Analyze: disassemble N instructions from an address with context
+                    std::string addrStr = queryParams["addr"];
+                    std::string countStr = queryParams["count"];
+                    
+                    duint addr = 0;
+                    int count = 10; // default
+                    
+                    if (addrStr.empty()) {
+                        // Use current IP if no address specified
+                        addr = Script::Register::Get(REG_IP);
+                    } else {
+                        try {
+                            if (addrStr.substr(0, 2) == "0x") {
+                                addr = std::stoull(addrStr.substr(2), nullptr, 16);
+                            } else {
+                                addr = std::stoull(addrStr, nullptr, 16);
+                            }
+                        } catch (const std::exception& e) {
+                            sendHttpResponse(clientSocket, 400, "text/plain", "Invalid address format");
+                            continue;
+                        }
+                    }
+                    
+                    if (!countStr.empty()) {
+                        try {
+                            count = std::stoi(countStr);
+                            if (count <= 0) count = 10;
+                            if (count > 100) count = 100;
+                        } catch (...) {
+                            count = 10;
+                        }
+                    }
+                    
+                    // Get module info
+                    duint modSize = 0;
+                    duint modBase = DbgMemFindBaseAddr(addr, &modSize);
+                    
+                    std::stringstream ss;
+                    ss << "{";
+                    ss << "\"base\":\"0x" << std::hex << modBase << "\",";
+                    ss << "\"instructions\":[";
+                    
+                    duint currentAddr = addr;
+                    for (int i = 0; i < count; i++) {
+                        DISASM_INSTR instr;
+                        DbgDisasmAt(currentAddr, &instr);
+                        
+                        if (instr.instr_size > 0) {
+                            if (i > 0) ss << ",";
+                            ss << "{";
+                            ss << "\"a\":\"0x" << std::hex << currentAddr << "\",";
+                            ss << "\"i\":\"" << instr.instruction << "\",";
+                            ss << "\"s\":" << std::dec << instr.instr_size;
+                            ss << "}";
+                            currentAddr += instr.instr_size;
+                        } else {
+                            break;
+                        }
+                    }
+                    ss << "]}";
+                    sendHttpResponse(clientSocket, 200, "application/json", ss.str());
+                }
+                // =============================================================================
                 // REGISTER API ENDPOINTS
                 // =============================================================================
                 else if (path == "/Register/Get") {

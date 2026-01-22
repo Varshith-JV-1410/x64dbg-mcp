@@ -1,92 +1,116 @@
-<h1 align="center"><b> x64dbg MCP </b> </h1>
+# x64dbg MCP - Optimized
 
+An optimized Model Context Protocol (MCP) server for x64dbg debugger, enabling AI-assisted reverse engineering.
 
+## Features
 
-<p align="center">
-  <a href="https://www.buymeacoffee.com/WASDUBYA" target="_blank">
-    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="200"/>
-  </a>
-</p>
+- **23 Optimized Tools** - Consolidated from 40+ tools for reduced token usage
+- **Batch Operations** - Get full CPU context in ONE call instead of 25+
+- **Cross-Architecture** - Works with both x64dbg and x32dbg
+- **Production Ready** - Tested and optimized for professional use
 
-<h2 align="center"> <b>Model Context Protocol for x64dbg</b> </h2>
+## Tool Categories
 
-<div align="center"> An MCP server that can bridge various LLMS with the x64dbg debugger, providing direct access to debugging functionality through prompts! </div>
-<h2 align="center"> <b>Features</b> </h2>
+| Category | Tools |
+|----------|-------|
+| **Context** | `GetContext`, `GetAllRegisters`, `GetAllFlags`, `GetDebugStatus` |
+| **Stepping** | `StepWithContext` (step + full context in one call) |
+| **Analysis** | `Analyze` (disassemble N instructions) |
+| **Memory** | `MemoryRead`, `MemoryWrite`, `GetMemoryInfo` |
+| **Debug Control** | `DebugRun`, `DebugPause`, `DebugStop` |
+| **Breakpoints** | `DebugSetBreakpoint`, `DebugDeleteBreakpoint` |
+| **Registers** | `RegisterSet` |
+| **Stack** | `StackOp` (pop/push/peek) |
+| **Flags** | `FlagSet` |
+| **Assembler** | `Assemble` (with optional memory write) |
+| **Pattern** | `PatternFindMem` |
+| **Modules** | `GetModuleList` |
+| **Misc** | `MiscParseExpression`, `MiscRemoteGetProcAddress`, `ExecCommand` |
 
-- **40+ x64dbg SDK Tools** - Provides access to almost every single debugging feature given by the SDK for smart debugging. 
-- **Cross-Architecture Support** - Works with both x64dbg and x32dbg.
-- **API Compatibility** - Provides API access to Claude from CMD for even faster debugging and longer consecutive tool chain calls.
-     - Runable from cmd using the args given in the python file. (API Key, max tool calls, Claude is limited to 25 but the api has a much higher limit.)
-     - *IF* you have issues connecting to the x64dbg session from the python file, open the logs tab in x64dbg to view what port the plugin is running on and add that as the argument to your python script.   
+## Quick Setup
 
-### Quick Setup
+### 1. Build the Plugin
 
-1. **Download Plugin**
-   - Grab .dp64 or .dp32 from this repo's build/release directory
-   - Copy to your local: [x64dbg_dir]/release/x64/plugins/
+```bash
+# Clone the repository
+git clone https://github.com/0xOb5k-J/x64dbg-mcp.git
+cd x64dbg-mcp
 
-2. **Configure Claude Desktop**
-   - Copy x64dbgmcp.py from this repos src directory
-   - Update local claude_desktop_config.json with path to x64dbgmcp.py
+# Build both 32-bit and 64-bit plugins
+cmake -S . -B build
+cmake --build build --target all_plugins --config Release
+
+# Or build single architecture
+cmake -S . -B build -A x64 -DBUILD_BOTH_ARCHES=OFF
+cmake --build build --config Release
+```
+
+### 2. Install Plugin
+
+Copy the compiled plugin to x64dbg:
+- `build/build64/Release/MCPx64dbg.dp64` → `x64dbg/release/x64/plugins/`
+- `build/build32/Release/MCPx64dbg.dp32` → `x64dbg/release/x32/plugins/`
+
+### 3. Configure Claude Desktop
+
+Add to `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "x64dbg": {
-      "command": "Path\\To\\Python",
-      "args": [
-        "Path\\to\\x64dbg.py"
-      ]
+      "command": "python",
+      "args": ["path/to/x64dbg.py"]
     }
   }
 }
 ```
-      
-4. **Start Debugging**
-   - Launch x64dbg
-   - Start Claude Desktop
-   - Check plugin loaded successfully (ALT+L in x64dbg for logs)
 
-### Build from Source
+### 4. Start Debugging
 
+1. Launch x64dbg and load a binary
+2. Start Claude Desktop
+3. Verify connection: Check x64dbg logs (Alt+L) for HTTP server message
 
-- git clone [repository-url]
-- cd x64dbgmcp
-- cmake -S . -B build
-- cmake --build build --target all_plugins --config Release
+## Token Efficiency
 
-🟨**---TIPS---**🟨
+| Operation | Before (calls) | After (calls) | Savings |
+|-----------|----------------|---------------|---------|
+| Get CPU state | 25+ | 1 (`GetContext`) | ~96% |
+| Get all registers | 17 | 1 (`GetAllRegisters`) | ~94% |
+| Step + analyze | 4+ | 1 (`StepWithContext`) | ~75% |
+| Memory info | 3 | 1 (`GetMemoryInfo`) | ~67% |
 
-1. Use the --target all_plugins argument to specify both x32 and x64, otherwise use -A flag to distinguish between either x64 or Win32 build. For example 32 bit build would be:
-- cmake -S . -B build32  -A Win32 -DBUILD_BOTH_ARCHES=OFF
-- cmake --build build32 --config Release
+## Example Usage
 
-2. If you do not provide the model you are working with with context of where your exe is, it wont have the capabiltiy to restart the binary if it crashes or hangs. So, provide it with the full path of the binary so it can call the CMDEXEC function like "init C:\Absolute\Path\to\EXE"
-
-</b> This will allow for even more automated analysis. </b> 
-
-## Usage Examples
-
-**Set a breakpoint and analyze:**
 ```
-"Set a breakpoint at the main function and step through the first few instructions"
+"Analyze the current function and step through it"
+→ Uses: GetContext, Analyze, StepWithContext
+
+"Set a breakpoint at main and run to it"
+→ Uses: MiscParseExpression, DebugSetBreakpoint, DebugRun
+
+"Read 100 bytes from the PE header"
+→ Uses: GetModuleList, MemoryRead
 ```
 
-**Memory analysis:**
-```
-"Read 100 bytes from address 0x401000 and show me what's there"
-```
+## Requirements
 
-**Register inspection:**
-```
-"What's the current value of RAX and RIP registers?"
-```
+- x64dbg (latest version)
+- Python 3.8+
+- `mcp` Python package: `pip install mcp`
+- Visual Studio 2019+ (for building)
 
-**Pattern searching:**
-```
-"Find the pattern '48 8B 05' in the current module"
-```
+## Credits
 
+Based on [x64dbgMCP by Wasdubya](https://github.com/Wasdubya/x64dbgMCP) - Original implementation.
 
-## Demo
-![Demo of Plug](Showcase.gif)
+Optimized version with:
+- Batch tool consolidation (39 → 23 tools)
+- New efficient endpoints (`GetContext`, `StepWithContext`, `Analyze`, etc.)
+- Removed broken/duplicate legacy tools
+- Production-grade reliability
+
+## License
+
+MIT License

@@ -197,60 +197,187 @@ def ExecCommand(cmd: str) -> str:
 # =============================================================================
 
 @mcp.tool()
-def IsDebugActive() -> bool:
+def GetDebugStatus() -> dict:
     """
-    Check if debugger is active (running)
-
+    Get debugger status in a single call (replaces IsDebugActive + IsDebugging)
+    
     Returns:
-        True if running, False otherwise
+        Dictionary with:
+        - debugging: True if x64dbg has a process loaded
+        - running: True if process is currently running (not paused)
     """
-    result = safe_get("IsDebugActive")
-    if isinstance(result, dict) and "isRunning" in result:
-        return result["isRunning"] is True
-    if isinstance(result, str):
+    debugging = safe_get("Is_Debugging")
+    active = safe_get("IsDebugActive")
+    
+    is_debugging = False
+    is_running = False
+    
+    if isinstance(debugging, dict) and "isDebugging" in debugging:
+        is_debugging = debugging["isDebugging"] is True
+    elif isinstance(debugging, str):
         try:
-            import json
-            parsed = json.loads(result)
-            return parsed.get("isRunning", False) is True
-        except Exception:
-            return False
-    return False
+            parsed = json.loads(debugging)
+            is_debugging = parsed.get("isDebugging", False) is True
+        except: pass
+    
+    if isinstance(active, dict) and "isRunning" in active:
+        is_running = active["isRunning"] is True
+    elif isinstance(active, str):
+        try:
+            parsed = json.loads(active)
+            is_running = parsed.get("isRunning", False) is True
+        except: pass
+    
+    return {"debugging": is_debugging, "running": is_running}
+# =============================================================================
+# OPTIMIZED BATCH TOOLS (Token-efficient combined operations)
+# =============================================================================
 
 @mcp.tool()
-def IsDebugging() -> bool:
+def GetAllRegisters() -> dict:
     """
-    Check if x64dbg is debugging a process
-
+    Get all general-purpose registers in a single call (replaces 16+ individual RegisterGet calls)
+    
     Returns:
-        True if debugging, False otherwise
+        Dictionary with all register values (rax-r15 on x64, eax-eip on x32)
     """
-    result = safe_get("Is_Debugging")
-    if isinstance(result, dict) and "isDebugging" in result:
-        return result["isDebugging"] is True
+    result = safe_get("GetAllRegisters")
+    if isinstance(result, dict):
+        return result
     if isinstance(result, str):
         try:
-            import json
-            parsed = json.loads(result)
-            return parsed.get("isDebugging", False) is True
-        except Exception:
-            return False
-    return False
+            return json.loads(result)
+        except:
+            return {"error": "Failed to parse registers", "raw": result}
+    return {"error": "Unexpected response"}
+
+@mcp.tool()
+def GetAllFlags() -> dict:
+    """
+    Get all CPU flags in a single call (replaces 9 individual FlagGet calls)
+    
+    Returns:
+        Dictionary with all flag values: zf, cf, of, sf, pf, af, df, tf, if
+    """
+    result = safe_get("GetAllFlags")
+    if isinstance(result, dict):
+        return result
+    if isinstance(result, str):
+        try:
+            return json.loads(result)
+        except:
+            return {"error": "Failed to parse flags", "raw": result}
+    return {"error": "Unexpected response"}
+
+@mcp.tool()
+def GetContext() -> dict:
+    """
+    Get complete CPU context in ONE call: all registers + flags + current instruction
+    This replaces 25+ individual tool calls with a single efficient call.
+    
+    Returns:
+        Dictionary containing:
+        - regs: all register values
+        - flags: all CPU flags (zf, cf, of, sf, pf)
+        - instr: current instruction {addr, asm, size}
+    """
+    result = safe_get("GetContext")
+    if isinstance(result, dict):
+        return result
+    if isinstance(result, str):
+        try:
+            return json.loads(result)
+        except:
+            return {"error": "Failed to parse context", "raw": result}
+    return {"error": "Unexpected response"}
+
+@mcp.tool()
+def StepWithContext(step_type: str = "in") -> dict:
+    """
+    Execute a step and return complete CPU context in ONE call.
+    Replaces: StepIn/StepOver/StepOut + GetAllRegisters + GetAllFlags + DisasmGetInstructionAtRIP
+    
+    Parameters:
+        step_type: "in" (step into), "over" (step over), or "out" (step out). Default: "in"
+    
+    Returns:
+        Dictionary containing:
+        - step: the step type executed
+        - regs: all register values after step
+        - flags: CPU flags after step
+        - instr: current instruction after step {addr, asm, size}
+    """
+    result = safe_get("StepWithContext", {"type": step_type})
+    if isinstance(result, dict):
+        return result
+    if isinstance(result, str):
+        try:
+            return json.loads(result)
+        except:
+            return {"error": "Failed to parse step result", "raw": result}
+    return {"error": "Unexpected response"}
+
+@mcp.tool()
+def GetMemoryInfo(addr: str) -> dict:
+    """
+    Get comprehensive memory info for an address in ONE call.
+    Replaces: MemoryIsValidPtr + MemoryBase + MemoryGetProtect
+    
+    Parameters:
+        addr: Memory address (hex format, e.g. "0x7ff6ba690000")
+    
+    Returns:
+        Dictionary containing:
+        - addr: the queried address
+        - valid: whether pointer is valid
+        - base: module/region base address
+        - size: region size
+        - protect: memory protection flags
+    """
+    result = safe_get("GetMemoryInfo", {"addr": addr})
+    if isinstance(result, dict):
+        return result
+    if isinstance(result, str):
+        try:
+            return json.loads(result)
+        except:
+            return {"error": "Failed to parse memory info", "raw": result}
+    return {"error": "Unexpected response"}
+
+@mcp.tool()
+def Analyze(addr: str = "", count: int = 10) -> dict:
+    """
+    Disassemble and analyze code at an address. If no address given, uses current RIP.
+    More efficient than multiple DisasmGetInstruction calls.
+    
+    Parameters:
+        addr: Start address (hex). Empty = current instruction pointer
+        count: Number of instructions to disassemble (default: 10, max: 100)
+    
+    Returns:
+        Dictionary containing:
+        - base: module base address
+        - instructions: list of {a: address, i: instruction, s: size}
+    """
+    params = {"count": str(count)}
+    if addr:
+        params["addr"] = addr
+    result = safe_get("Analyze", params)
+    if isinstance(result, dict):
+        return result
+    if isinstance(result, str):
+        try:
+            return json.loads(result)
+        except:
+            return {"error": "Failed to parse analysis", "raw": result}
+    return {"error": "Unexpected response"}
+
 # =============================================================================
 # REGISTER API
 # =============================================================================
 
-@mcp.tool()
-def RegisterGet(register: str) -> str:
-    """
-    Get register value using Script API
-    
-    Parameters:
-        register: Register name (e.g. "eax", "rax", "rip")
-    
-    Returns:
-        Register value in hex format
-    """
-    return safe_get("Register/Get", {"register": register})
+# REMOVED: Use GetAllRegisters() or GetContext() instead
+# def RegisterGet - covered by batch tools
 
 @mcp.tool()
 def RegisterSet(register: str, value: str) -> str:
@@ -298,34 +425,9 @@ def MemoryWrite(addr: str, data: str) -> str:
     """
     return safe_get("Memory/Write", {"addr": addr, "data": data})
 
-@mcp.tool()
-def MemoryIsValidPtr(addr: str) -> bool:
-    """
-    Check if memory address is valid
-    
-    Parameters:
-        addr: Memory address (in hex format, e.g. "0x1000")
-    
-    Returns:
-        True if valid, False otherwise
-    """
-    result = safe_get("Memory/IsValidPtr", {"addr": addr})
-    if isinstance(result, str):
-        return result.lower() == "true"
-    return False
-
-@mcp.tool()
-def MemoryGetProtect(addr: str) -> str:
-    """
-    Get memory protection flags
-    
-    Parameters:
-        addr: Memory address (in hex format, e.g. "0x1000")
-    
-    Returns:
-        Protection flags in hex format
-    """
-    return safe_get("Memory/GetProtect", {"addr": addr})
+# REMOVED: Use GetMemoryInfo instead (batch operation)
+# def MemoryIsValidPtr - covered by GetMemoryInfo
+# def MemoryGetProtect - covered by GetMemoryInfo
 
 # =============================================================================
 # DEBUG API
@@ -361,35 +463,10 @@ def DebugStop() -> str:
     """
     return safe_get("Debug/Stop")
 
-@mcp.tool()
-def DebugStepIn() -> str:
-    """
-    Step into the next instruction using Script API
-    
-    Returns:
-        Status message
-    """
-    return safe_get("Debug/StepIn")
-
-@mcp.tool()
-def DebugStepOver() -> str:
-    """
-    Step over the next instruction using Script API
-    
-    Returns:
-        Status message
-    """
-    return safe_get("Debug/StepOver")
-
-@mcp.tool()
-def DebugStepOut() -> str:
-    """
-    Step out of the current function using Script API
-    
-    Returns:
-        Status message
-    """
-    return safe_get("Debug/StepOut")
+# REMOVED: Use StepWithContext instead (returns full context after step)
+# def DebugStepIn - use StepWithContext(step_type="in")
+# def DebugStepOver - use StepWithContext(step_type="over")
+# def DebugStepOut - use StepWithContext(step_type="out")
 
 @mcp.tool()
 def DebugSetBreakpoint(addr: str) -> str:
@@ -422,100 +499,70 @@ def DebugDeleteBreakpoint(addr: str) -> str:
 # =============================================================================
 
 @mcp.tool()
-def AssemblerAssemble(addr: str, instruction: str) -> dict:
+def Assemble(addr: str, instruction: str, write_to_memory: bool = False) -> dict:
     """
-    Assemble instruction at address using Script API
+    Assemble instruction at address. Optionally write directly to memory.
     
     Parameters:
         addr: Memory address (in hex format, e.g. "0x1000")
         instruction: Assembly instruction (e.g. "mov eax, 1")
+        write_to_memory: If True, patches memory directly. If False, returns bytes.
     
     Returns:
-        Dictionary with assembly result
+        Dictionary with assembly result (success, size, bytes) or status message
     """
-    result = safe_get("Assembler/Assemble", {"addr": addr, "instruction": instruction})
-    if isinstance(result, dict):
-        return result
-    elif isinstance(result, str):
-        try:
-            return json.loads(result)
-        except:
-            return {"error": "Failed to parse assembly result", "raw": result}
-    return {"error": "Unexpected response format"}
-
-@mcp.tool()
-def AssemblerAssembleMem(addr: str, instruction: str) -> str:
-    """
-    Assemble instruction directly into memory using Script API
-    
-    Parameters:
-        addr: Memory address (in hex format, e.g. "0x1000")
-        instruction: Assembly instruction (e.g. "mov eax, 1")
-    
-    Returns:
-        Status message
-    """
-    return safe_get("Assembler/AssembleMem", {"addr": addr, "instruction": instruction})
+    if write_to_memory:
+        result = safe_get("Assembler/AssembleMem", {"addr": addr, "instruction": instruction})
+        return {"success": "success" in str(result).lower(), "message": result}
+    else:
+        result = safe_get("Assembler/Assemble", {"addr": addr, "instruction": instruction})
+        if isinstance(result, dict):
+            return result
+        elif isinstance(result, str):
+            try:
+                return json.loads(result)
+            except:
+                return {"error": "Failed to parse assembly result", "raw": result}
+        return {"error": "Unexpected response format"}
 
 # =============================================================================
 # STACK API
 # =============================================================================
 
 @mcp.tool()
-def StackPop() -> str:
+def StackOp(operation: str, value: str = "") -> str:
     """
-    Pop value from stack using Script API
-    
-    Returns:
-        Popped value in hex format
-    """
-    return safe_get("Stack/Pop")
-
-@mcp.tool()
-def StackPush(value: str) -> str:
-    """
-    Push value to stack using Script API
+    Stack operations: pop, push, or peek
     
     Parameters:
-        value: Value to push (in hex format, e.g. "0x1000")
-    
-    Returns:
-        Previous top value in hex format
-    """
-    return safe_get("Stack/Push", {"value": value})
-
-@mcp.tool()
-def StackPeek(offset: str = "0") -> str:
-    """
-    Peek at stack value using Script API
-    
-    Parameters:
-        offset: Stack offset (default: "0")
+        operation: "pop", "push", or "peek"
+        value: Value for push, or offset for peek (default: "0")
     
     Returns:
         Stack value in hex format
     """
-    return safe_get("Stack/Peek", {"offset": offset})
+    if operation == "pop":
+        return safe_get("Stack/Pop")
+    elif operation == "push":
+        return safe_get("Stack/Push", {"value": value})
+    elif operation == "peek":
+        return safe_get("Stack/Peek", {"offset": value or "0"})
+    else:
+        return "Invalid operation. Use: pop, push, peek"
+
+# REMOVED: Use StackOp instead
+# def StackPop - use StackOp("pop")
+# def StackPush - use StackOp("push", value)
+# def StackPeek - use StackOp("peek", offset)
 
 # =============================================================================
 # FLAG API
 # =============================================================================
+# FLAG API
+# =============================================================================
 
-@mcp.tool()
-def FlagGet(flag: str) -> bool:
-    """
-    Get CPU flag value using Script API
-    
-    Parameters:
-        flag: Flag name (ZF, OF, CF, PF, SF, TF, AF, DF, IF)
-    
-    Returns:
-        Flag value (True/False)
-    """
-    result = safe_get("Flag/Get", {"flag": flag})
-    if isinstance(result, str):
-        return result.lower() == "true"
-    return False
+# REMOVED: Use GetAllFlags or GetContext instead
+# def FlagGet - use GetAllFlags() or GetContext()
 
 @mcp.tool()
 def FlagSet(flag: str, value: bool) -> str:
@@ -582,287 +629,114 @@ def MiscRemoteGetProcAddress(module: str, api: str) -> str:
     return safe_get("Misc/RemoteGetProcAddress", {"module": module, "api": api})
 
 # =============================================================================
-# LEGACY COMPATIBILITY FUNCTIONS
+# LEGACY/DEPRECATED FUNCTIONS (Not exposed via MCP - use optimized tools above)
+# These are kept for internal/CLI compatibility but removed from MCP to reduce token usage
+# Use instead: MemoryRead, MemoryWrite, DebugSetBreakpoint, DebugRun, etc.
 # =============================================================================
 
-@mcp.tool()
+# DEPRECATED: Use RegisterSet instead
 def SetRegister(name: str, value: str) -> str:
-    """
-    Set register value using command (legacy compatibility)
-    
-    Parameters:
-        name: Register name (e.g. "eax", "rip")
-        value: Value to set (in hex format, e.g. "0x1000")
-    
-    Returns:
-        Status message
-    """
-    # Construct command to set register
+    """[DEPRECATED] Use RegisterSet instead"""
     cmd = f"r {name}={value}"
     return ExecCommand(cmd)
 
-@mcp.tool()
+# DEPRECATED: Use MemoryRead instead (identical functionality)
 def MemRead(addr: str, size: str) -> str:
-    """
-    Read memory at address (legacy compatibility)
-    
-    Parameters:
-        addr: Memory address (in hex format, e.g. "0x1000")
-        size: Number of bytes to read
-    
-    Returns:
-        Hexadecimal string representing the memory contents
-    """
+    """[DEPRECATED] Use MemoryRead instead"""
     return safe_get("MemRead", {"addr": addr, "size": size})
 
-@mcp.tool()
+# DEPRECATED: Use MemoryWrite instead (identical functionality)
 def MemWrite(addr: str, data: str) -> str:
-    """
-    Write memory at address (legacy compatibility)
-    
-    Parameters:
-        addr: Memory address (in hex format, e.g. "0x1000")
-        data: Hexadecimal string representing the data to write
-    
-    Returns:
-        Status message
-    """
+    """[DEPRECATED] Use MemoryWrite instead"""
     return safe_get("MemWrite", {"addr": addr, "data": data})
 
-@mcp.tool()
+# DEPRECATED: Use DebugSetBreakpoint instead (ExecCommand is broken)
 def SetBreakpoint(addr: str) -> str:
-    """
-    Set breakpoint at address (legacy compatibility)
-    
-    Parameters:
-        addr: Memory address (in hex format, e.g. "0x1000")
-    
-    Returns:
-        Status message
-    """
+    """[DEPRECATED] Use DebugSetBreakpoint instead"""
     return ExecCommand(f"bp {addr}")
 
-@mcp.tool()
+# DEPRECATED: Use DebugDeleteBreakpoint instead
 def DeleteBreakpoint(addr: str) -> str:
-    """
-    Delete breakpoint at address (legacy compatibility)
-    
-    Parameters:
-        addr: Memory address (in hex format, e.g. "0x1000")
-    
-    Returns:
-        Status message
-    """
+    """[DEPRECATED] Use DebugDeleteBreakpoint instead"""
     return ExecCommand(f"bpc {addr}")
 
-@mcp.tool()
+# DEPRECATED: Use DebugRun instead
 def Run() -> str:
-    """
-    Resume execution of the debugged process (legacy compatibility)
-    
-    Returns:
-        Status message
-    """
+    """[DEPRECATED] Use DebugRun instead"""
     return ExecCommand("run")
 
-@mcp.tool()
+# DEPRECATED: Use DebugPause instead
 def Pause() -> str:
-    """
-    Pause execution of the debugged process (legacy compatibility)
-    
-    Returns:
-        Status message
-    """
+    """[DEPRECATED] Use DebugPause instead"""
     return ExecCommand("pause")
 
-@mcp.tool()
+# DEPRECATED: Use DebugStepIn or StepWithContext instead
 def StepIn() -> str:
-    """
-    Step into the next instruction (legacy compatibility)
-    
-    Returns:
-        Status message
-    """
+    """[DEPRECATED] Use DebugStepIn or StepWithContext instead"""
     return ExecCommand("sti")
 
-@mcp.tool()
+# DEPRECATED: Use DebugStepOver or StepWithContext instead
 def StepOver() -> str:
-    """
-    Step over the next instruction (legacy compatibility)
-    
-    Returns:
-        Status message
-    """
+    """[DEPRECATED] Use DebugStepOver or StepWithContext instead"""
     return ExecCommand("sto")
 
-@mcp.tool()
+# DEPRECATED: Use DebugStepOut or StepWithContext instead
 def StepOut() -> str:
-    """
-    Step out of the current function (legacy compatibility)
-    
-    Returns:
-        Status message
-    """
+    """[DEPRECATED] Use DebugStepOut or StepWithContext(step_type='out') instead"""
     return ExecCommand("rtr")
 
-@mcp.tool()
+# DEPRECATED: ExecCommand is broken, needs fix
 def GetCallStack() -> list:
-    """
-    Get call stack of the current thread (legacy compatibility)
-    
-    Returns:
-        Command result information
-    """
+    """[DEPRECATED] ExecCommand-based, currently broken"""
     result = ExecCommand("k")
     return [{"info": "Call stack information requested via command", "result": result}]
 
-@mcp.tool()
+# DEPRECATED: Use DisasmGetInstruction or Analyze instead
 def Disassemble(addr: str) -> dict:
-    """
-    Disassemble at address (legacy compatibility)
-    
-    Parameters:
-        addr: Memory address (in hex format, e.g. "0x1000")
-    
-    Returns:
-        Dictionary containing disassembly information
-    """
+    """[DEPRECATED] Use DisasmGetInstruction or Analyze instead"""
     return {"addr": addr, "command_result": ExecCommand(f"dis {addr}")}
 
-@mcp.tool()
-def DisasmGetInstruction(addr: str) -> dict:
-    """
-    Get disassembly of a single instruction at the specified address
-    
-    Parameters:
-        addr: Memory address (in hex format, e.g. "0x1000")
-    
-    Returns:
-        Dictionary containing instruction details
-    """
-    result = safe_get("Disasm/GetInstruction", {"addr": addr})
-    if isinstance(result, dict):
-        return result
-    elif isinstance(result, str):
-        try:
-            return json.loads(result)
-        except:
-            return {"error": "Failed to parse disassembly result", "raw": result}
-    return {"error": "Unexpected response format"}
-
-@mcp.tool()
-def DisasmGetInstructionRange(addr: str, count: int = 1) -> list:
-    """
-    Get disassembly of multiple instructions starting at the specified address
-    
-    Parameters:
-        addr: Memory address (in hex format, e.g. "0x1000")
-        count: Number of instructions to disassemble (default: 1, max: 100)
-    
-    Returns:
-        List of dictionaries containing instruction details
-    """
-    result = safe_get("Disasm/GetInstructionRange", {"addr": addr, "count": str(count)})
-    if isinstance(result, list):
-        return result
-    elif isinstance(result, str):
-        try:
-            return json.loads(result)
-        except:
-            return [{"error": "Failed to parse disassembly result", "raw": result}]
-    return [{"error": "Unexpected response format"}]
-
-@mcp.tool()
-def DisasmGetInstructionAtRIP() -> dict:
-    """
-    Get disassembly of the instruction at the current RIP
-    
-    Returns:
-        Dictionary containing current instruction details
-    """
-    result = safe_get("Disasm/GetInstructionAtRIP")
-    if isinstance(result, dict):
-        return result
-    elif isinstance(result, str):
-        try:
-            return json.loads(result)
-        except:
-            return {"error": "Failed to parse disassembly result", "raw": result}
-    return {"error": "Unexpected response format"}
-
-@mcp.tool()
-def StepInWithDisasm() -> dict:
-    """
-    Step into the next instruction and return both step result and current instruction disassembly
-    
-    Returns:
-        Dictionary containing step result and current instruction info
-    """
-    result = safe_get("Disasm/StepInWithDisasm")
-    if isinstance(result, dict):
-        return result
-    elif isinstance(result, str):
-        try:
-            return json.loads(result)
-        except:
-            return {"error": "Failed to parse step result", "raw": result}
-    return {"error": "Unexpected response format"}
+# REMOVED: Use Analyze instead (more efficient, customizable count)
+# def DisasmGetInstruction - use Analyze(addr, count=1)
+# def DisasmGetInstructionRange - use Analyze(addr, count=N)
+# def DisasmGetInstructionAtRIP - use GetContext() or Analyze()
+# def StepInWithDisasm - use StepWithContext (returns full context)
 
 
 @mcp.tool()
 def GetModuleList() -> list:
     """
-    Get list of loaded modules
+    Get list of loaded modules in the debugged process
     
     Returns:
-        List of module information (name, base address, size, etc.)
+        List of module information: name, base, size, entry, sectionCount, path
     """
     result = safe_get("GetModuleList")
+    # Handle various response formats
     if isinstance(result, list):
         return result
+    elif isinstance(result, dict):
+        # Check if this is an error wrapper with raw JSON string
+        if "raw" in result and isinstance(result["raw"], str):
+            try:
+                parsed = json.loads(result["raw"])
+                if isinstance(parsed, list):
+                    return parsed
+            except:
+                pass
+        return [result]  # Return dict as single-item list
     elif isinstance(result, str):
         try:
-            return json.loads(result)
+            parsed = json.loads(result)
+            if isinstance(parsed, list):
+                return parsed
+            return [parsed]
         except:
             return [{"error": "Failed to parse module list", "raw": result}]
     return [{"error": "Unexpected response format"}]
 
-@mcp.tool()
-def MemoryBase(addr: str) -> dict:
-    """
-    Find the base address and size of a module containing the given address
-    
-    Parameters:
-        addr: Memory address (in hex format, e.g. "0x7FF12345")
-    
-    Returns:
-        Dictionary containing base_address and size of the module
-    """
-    try:
-        # Make the request to the endpoint
-        result = safe_get("MemoryBase", {"addr": addr})
-        
-        # Handle different response types
-        if isinstance(result, dict):
-            return result
-        elif isinstance(result, str):
-            try:
-                # Try to parse the string as JSON
-                return json.loads(result)
-            except:
-                # Fall back to string parsing if needed
-                if "," in result:
-                    parts = result.split(",")
-                    return {
-                        "base_address": parts[0],
-                        "size": parts[1]
-                    }
-                return {"raw_response": result}
-        
-        return {"error": "Unexpected response format"}
-            
-    except Exception as e:
-        return {"error": str(e)}
+# REMOVED: Use GetMemoryInfo instead (provides base, size, valid, protect in one call)
+# def MemoryBase - use GetMemoryInfo(addr) which returns base, size, valid, protect
 
 import argparse
 

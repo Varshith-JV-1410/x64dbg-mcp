@@ -1,0 +1,33 @@
+# Build directories
+build/
+build_new/
+build32/
+build64/
+out/
+
+# Compiled plugins
+*.dp32
+*.dp64
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE files
+.vs/
+.vscode/
+*.user
+*.suo
+
+# CMake generated
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+*.vcxproj
+*.vcxproj.filters
+*.sln
+
+# OS files
+Thumbs.db
+.DS_Store

@@ -180,7 +180,7 @@ def _block_to_dict(block: Any) -> Dict[str, Any]:
 # =============================================================================
 
 @mcp.tool()
-def ExecCommand(cmd: str) -> str:
+def ExecCommand(cmd: str) -> dict:
     """
     Execute a command in x64dbg and return its output
     
@@ -188,9 +188,16 @@ def ExecCommand(cmd: str) -> str:
         cmd: Command to execute
     
     Returns:
-        Command execution status and output
+        Dictionary with:
+        - success: Whether command executed successfully
+        - command: The command that was executed
+        - message: Status message (output goes to x64dbg Log window)
     """
-    return safe_get("ExecCommand", {"cmd": cmd})
+    result = safe_get("ExecCommand", {"cmd": cmd})
+    if isinstance(result, dict):
+        return result
+    # If we got a string error, wrap it
+    return {"success": False, "command": cmd, "message": str(result)}
 
 # =============================================================================
 # DEBUGGING STATUS

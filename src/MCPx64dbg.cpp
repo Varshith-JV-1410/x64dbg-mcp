@@ -309,132 +309,17 @@ DWORD WINAPI HttpServerThread(LPVOID lpParam) {
                         continue;
                     }
                     
-                    // Generate unique temporary log file
-                    char tempPath[MAX_PATH];
-                    GetTempPathA(MAX_PATH, tempPath);
-                    std::string logFile = std::string(tempPath) + "x64dbg_cmd_" + std::to_string(GetTickCount()) + ".log";
-                    
-                    // Start log redirection
-                    std::string redirectCmd = "LogRedirect \"" + logFile + "\"";
-                    DbgCmdExecDirect(redirectCmd.c_str());
-                    
-                    // Small delay to ensure redirection is active
-                    Sleep(50);
-                    
-                    // Clear any existing content in the log
-                    DbgCmdExecDirect("LogClear");
-                    
-                    // Small delay after clearing
-                    Sleep(50);
-                    
-                    // Execute the actual command
+                    // Execute the command directly
+                    // Note: x64dbg command output goes to the Log window, not capturable via API
                     bool success = DbgCmdExecDirect(cmd.c_str());
                     
-                    // Wait for command to complete and output to be written
-                    Sleep(200);
+                    // Build JSON response using stringstream
+                    std::stringstream ss;
+                    ss << "{\"success\":" << (success ? "true" : "false") 
+                       << ",\"command\":\"" << cmd << "\""
+                       << ",\"message\":\"" << (success ? "Command executed successfully. Check x64dbg Log window for output." : "Command execution failed or returned false.") << "\"}";
                     
-                    // Stop log redirection
-                    DbgCmdExecDirect("LogRedirectStop");
-                    
-                    // Wait a bit more for file operations to complete
-                    Sleep(100);
-                    
-                    // Read the captured output with retry mechanism
-                    std::string output;
-                    int retryCount = 0;
-                    const int maxRetries = 5;
-                    
-                    while (retryCount < maxRetries) {
-                        std::ifstream file(logFile, std::ios::binary);
-                        if (file.is_open()) {
-                            // Get file size
-                            file.seekg(0, std::ios::end);
-                            std::streamsize fileSize = file.tellg();
-                            file.seekg(0, std::ios::beg);
-                            
-                            if (fileSize > 0) {
-                                // Read the entire file
-                                std::stringstream buffer;
-                                buffer << file.rdbuf();
-                                output = buffer.str();
-                                file.close();
-                                break;
-                            } else {
-                                file.close();
-                                // File exists but is empty, wait and retry
-                                Sleep(100);
-                                retryCount++;
-                            }
-                        } else {
-                            // File doesn't exist yet, wait and retry
-                            Sleep(100);
-                            retryCount++;
-                        }
-                    }
-                    
-                    // Clean up temporary file
-                    DeleteFileA(logFile.c_str());
-                    
-                    // Process the captured output
-                    if (!output.empty()) {
-                        // Filter out log redirection messages
-                        size_t pos = 0;
-                        while ((pos = output.find("Log will be redirected to", pos)) != std::string::npos) {
-                            size_t endPos = output.find('\n', pos);
-                            if (endPos != std::string::npos) {
-                                output.erase(pos, endPos - pos + 1);
-                            } else {
-                                output.erase(pos);
-                                break;
-                            }
-                        }
-                        
-                        // Remove "Log redirection stopped" messages
-                        pos = 0;
-                        while ((pos = output.find("Log redirection stopped", pos)) != std::string::npos) {
-                            size_t endPos = output.find('\n', pos);
-                            if (endPos != std::string::npos) {
-                                output.erase(pos, endPos - pos + 1);
-                            } else {
-                                output.erase(pos);
-                                break;
-                            }
-                        }
-                        
-                        // Remove "Log cleared" messages
-                        pos = 0;
-                        while ((pos = output.find("Log cleared", pos)) != std::string::npos) {
-                            size_t endPos = output.find('\n', pos);
-                            if (endPos != std::string::npos) {
-                                output.erase(pos, endPos - pos + 1);
-                            } else {
-                                output.erase(pos);
-                                break;
-                            }
-                        }
-                        
-                        // Trim whitespace and empty lines
-                        output.erase(0, output.find_first_not_of(" \t\n\r"));
-                        output.erase(output.find_last_not_of(" \t\n\r") + 1);
-                    }
-                    
-                    // Prepare response
-                    std::string response;
-                    if (success) {
-                        if (!output.empty()) {
-                            response = output;
-                        } else {
-                            response = "Command executed successfully (no output captured)";
-                        }
-                    } else {
-                        if (!output.empty()) {
-                            response = "Command failed:\n" + output;
-                        } else {
-                            response = "Command execution failed";
-                        }
-                    }
-                    
-                    sendHttpResponse(clientSocket, success ? 200 : 500, "text/plain", response);
+                    sendHttpResponse(clientSocket, success ? 200 : 500, "application/json", ss.str());
                 }
                 else if (path == "/IsDebugActive") {
                     bool isRunning = DbgIsRunning();

@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"E:/mcp-dev/x64dbgMCP/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

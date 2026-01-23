@@ -1,0 +1,5 @@
+E:/mcp-dev/x64dbgMCP/build/CMakeFiles/plugin32.dir
+E:/mcp-dev/x64dbgMCP/build/CMakeFiles/plugin64.dir
+E:/mcp-dev/x64dbgMCP/build/CMakeFiles/all_plugins.dir
+E:/mcp-dev/x64dbgMCP/build/CMakeFiles/ALL_BUILD.dir
+E:/mcp-dev/x64dbgMCP/build/CMakeFiles/ZERO_CHECK.dir

@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="E:\mcp-dev\x64dbgMCP\build\CMakeFiles\7bcf9201cc7361f3299a704cb8c637ff\plugin64-mkdir.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\mcp-dev\x64dbgMCP\build\CMakeFiles\7bcf9201cc7361f3299a704cb8c637ff\plugin64-download.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\mcp-dev\x64dbgMCP\build\CMakeFiles\7bcf9201cc7361f3299a704cb8c637ff\plugin64-update.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\mcp-dev\x64dbgMCP\build\CMakeFiles\7bcf9201cc7361f3299a704cb8c637ff\plugin64-patch.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\mcp-dev\x64dbgMCP\build\CMakeFiles\7bcf9201cc7361f3299a704cb8c637ff\plugin64-configure.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\mcp-dev\x64dbgMCP\build\CMakeFiles\7bcf9201cc7361f3299a704cb8c637ff\plugin64-build.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\mcp-dev\x64dbgMCP\build\CMakeFiles\7bcf9201cc7361f3299a704cb8c637ff\plugin64-install.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\mcp-dev\x64dbgMCP\build\CMakeFiles\7d5c5b3d7ffdfa838cf4b49d9aed64ac\plugin64-complete.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\mcp-dev\x64dbgMCP\build\CMakeFiles\b920dd3cf7bb56856417b6dc20c862a3\plugin64.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\mcp-dev\x64dbgMCP\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="E:\mcp-dev\x64dbgMCP\build\CMakeFiles\plugin64" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{CE457251-22C9-398D-A098-A24D5D16C9E7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,10 @@
+^E:\MCP-DEV\X64DBGMCP\BUILD\CMAKEFILES\B920DD3CF7BB56856417B6DC20C862A3\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SE:/mcp-dev/x64dbgMCP -BE:/mcp-dev/x64dbgMCP/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file E:/mcp-dev/x64dbgMCP/build/MCPx64dbg.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

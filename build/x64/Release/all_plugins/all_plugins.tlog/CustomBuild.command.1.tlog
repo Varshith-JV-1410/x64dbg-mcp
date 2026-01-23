@@ -1,0 +1,18 @@
+^E:\MCP-DEV\X64DBGMCP\BUILD\CMAKEFILES\B920DD3CF7BB56856417B6DC20C862A3\ALL_PLUGINS.RULE
+setlocal
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^E:\MCP-DEV\X64DBGMCP\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SE:/mcp-dev/x64dbgMCP -BE:/mcp-dev/x64dbgMCP/build --check-stamp-file E:/mcp-dev/x64dbgMCP/build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

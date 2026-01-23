@@ -1,0 +1,128 @@
+^E:\MCP-DEV\X64DBGMCP\BUILD\CMAKEFILES\725D8ADAF14301E4D6C12127F7C76CF4\PLUGIN32-MKDIR.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -Dcfgdir=/Release -P E:/mcp-dev/x64dbgMCP/build/plugin32-prefix/tmp/plugin32-mkdirs.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch E:/mcp-dev/x64dbgMCP/build/plugin32-prefix/src/plugin32-stamp/Release/plugin32-mkdir
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^E:\MCP-DEV\X64DBGMCP\BUILD\CMAKEFILES\725D8ADAF14301E4D6C12127F7C76CF4\PLUGIN32-DOWNLOAD.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch E:/mcp-dev/x64dbgMCP/build/plugin32-prefix/src/plugin32-stamp/Release/plugin32-download
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^E:\MCP-DEV\X64DBGMCP\BUILD\CMAKEFILES\725D8ADAF14301E4D6C12127F7C76CF4\PLUGIN32-UPDATE.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch E:/mcp-dev/x64dbgMCP/build/plugin32-prefix/src/plugin32-stamp/Release/plugin32-update
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^E:\MCP-DEV\X64DBGMCP\BUILD\CMAKEFILES\725D8ADAF14301E4D6C12127F7C76CF4\PLUGIN32-PATCH.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch E:/mcp-dev/x64dbgMCP/build/plugin32-prefix/src/plugin32-stamp/Release/plugin32-patch
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^E:\MCP-DEV\X64DBGMCP\BUILD\CMAKEFILES\725D8ADAF14301E4D6C12127F7C76CF4\PLUGIN32-CONFIGURE.RULE
+setlocal
+cd E:\mcp-dev\x64dbgMCP\build\build32
+if %errorlevel% neq 0 goto :cmEnd
+E:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -G "Visual Studio 17 2022" -DCMAKE_GENERATOR_PLATFORM=Win32 -DCMAKE_BUILD_TYPE=Release -DBUILD_BOTH_ARCHES=OFF "-GVisual Studio 17 2022" "-DCMAKE_GENERATOR_INSTANCE:INTERNAL=E:/tools/Microsoft Visual Studio/2022/Professional" -S E:/mcp-dev/x64dbgMCP -B E:/mcp-dev/x64dbgMCP/build/build32
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch E:/mcp-dev/x64dbgMCP/build/plugin32-prefix/src/plugin32-stamp/Release/plugin32-configure
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^E:\MCP-DEV\X64DBGMCP\BUILD\CMAKEFILES\725D8ADAF14301E4D6C12127F7C76CF4\PLUGIN32-BUILD.RULE
+setlocal
+cd E:\mcp-dev\x64dbgMCP\build\build32
+if %errorlevel% neq 0 goto :cmEnd
+E:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" --build . --config Release
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch E:/mcp-dev/x64dbgMCP/build/plugin32-prefix/src/plugin32-stamp/Release/plugin32-build
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^E:\MCP-DEV\X64DBGMCP\BUILD\CMAKEFILES\725D8ADAF14301E4D6C12127F7C76CF4\PLUGIN32-INSTALL.RULE
+setlocal
+cd E:\mcp-dev\x64dbgMCP\build\build32
+if %errorlevel% neq 0 goto :cmEnd
+E:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch E:/mcp-dev/x64dbgMCP/build/plugin32-prefix/src/plugin32-stamp/Release/plugin32-install
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^E:\MCP-DEV\X64DBGMCP\BUILD\CMAKEFILES\7D5C5B3D7FFDFA838CF4B49D9AED64AC\PLUGIN32-COMPLETE.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory E:/mcp-dev/x64dbgMCP/build/CMakeFiles/Release
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch E:/mcp-dev/x64dbgMCP/build/CMakeFiles/Release/plugin32-complete
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch E:/mcp-dev/x64dbgMCP/build/plugin32-prefix/src/plugin32-stamp/Release/plugin32-done
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^E:\MCP-DEV\X64DBGMCP\BUILD\CMAKEFILES\B920DD3CF7BB56856417B6DC20C862A3\PLUGIN32.RULE
+setlocal
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^E:\MCP-DEV\X64DBGMCP\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SE:/mcp-dev/x64dbgMCP -BE:/mcp-dev/x64dbgMCP/build --check-stamp-file E:/mcp-dev/x64dbgMCP/build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

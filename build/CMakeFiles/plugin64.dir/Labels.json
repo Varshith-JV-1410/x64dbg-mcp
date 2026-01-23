@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "E:/mcp-dev/x64dbgMCP/build/CMakeFiles/plugin64"
+		},
+		{
+			"file" : "E:/mcp-dev/x64dbgMCP/build/CMakeFiles/b920dd3cf7bb56856417b6dc20c862a3/plugin64.rule"
+		},
+		{
+			"file" : "E:/mcp-dev/x64dbgMCP/build/CMakeFiles/7d5c5b3d7ffdfa838cf4b49d9aed64ac/plugin64-complete.rule"
+		},
+		{
+			"file" : "E:/mcp-dev/x64dbgMCP/build/CMakeFiles/7bcf9201cc7361f3299a704cb8c637ff/plugin64-build.rule"
+		},
+		{
+			"file" : "E:/mcp-dev/x64dbgMCP/build/CMakeFiles/7bcf9201cc7361f3299a704cb8c637ff/plugin64-configure.rule"
+		},
+		{
+			"file" : "E:/mcp-dev/x64dbgMCP/build/CMakeFiles/7bcf9201cc7361f3299a704cb8c637ff/plugin64-download.rule"
+		},
+		{
+			"file" : "E:/mcp-dev/x64dbgMCP/build/CMakeFiles/7bcf9201cc7361f3299a704cb8c637ff/plugin64-install.rule"
+		},
+		{
+			"file" : "E:/mcp-dev/x64dbgMCP/build/CMakeFiles/7bcf9201cc7361f3299a704cb8c637ff/plugin64-mkdir.rule"
+		},
+		{
+			"file" : "E:/mcp-dev/x64dbgMCP/build/CMakeFiles/7bcf9201cc7361f3299a704cb8c637ff/plugin64-patch.rule"
+		},
+		{
+			"file" : "E:/mcp-dev/x64dbgMCP/build/CMakeFiles/7bcf9201cc7361f3299a704cb8c637ff/plugin64-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"plugin64"
+		],
+		"name" : "plugin64"
+	}
+}

@@ -1,0 +1,13 @@
+# Target labels
+ plugin32
+# Source files and their labels
+E:/mcp-dev/x64dbgMCP/build/CMakeFiles/plugin32
+E:/mcp-dev/x64dbgMCP/build/CMakeFiles/b920dd3cf7bb56856417b6dc20c862a3/plugin32.rule
+E:/mcp-dev/x64dbgMCP/build/CMakeFiles/7d5c5b3d7ffdfa838cf4b49d9aed64ac/plugin32-complete.rule
+E:/mcp-dev/x64dbgMCP/build/CMakeFiles/725d8adaf14301e4d6c12127f7c76cf4/plugin32-build.rule
+E:/mcp-dev/x64dbgMCP/build/CMakeFiles/725d8adaf14301e4d6c12127f7c76cf4/plugin32-configure.rule
+E:/mcp-dev/x64dbgMCP/build/CMakeFiles/725d8adaf14301e4d6c12127f7c76cf4/plugin32-download.rule
+E:/mcp-dev/x64dbgMCP/build/CMakeFiles/725d8adaf14301e4d6c12127f7c76cf4/plugin32-install.rule
+E:/mcp-dev/x64dbgMCP/build/CMakeFiles/725d8adaf14301e4d6c12127f7c76cf4/plugin32-mkdir.rule
+E:/mcp-dev/x64dbgMCP/build/CMakeFiles/725d8adaf14301e4d6c12127f7c76cf4/plugin32-patch.rule
+E:/mcp-dev/x64dbgMCP/build/CMakeFiles/725d8adaf14301e4d6c12127f7c76cf4/plugin32-update.rule

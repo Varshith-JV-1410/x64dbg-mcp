@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="E:\mcp-dev\x64dbgMCP\build\CMakeFiles\b920dd3cf7bb56856417b6dc20c862a3\all_plugins.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\mcp-dev\x64dbgMCP\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="E:\mcp-dev\x64dbgMCP\build\CMakeFiles\all_plugins" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{CE457251-22C9-398D-A098-A24D5D16C9E7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

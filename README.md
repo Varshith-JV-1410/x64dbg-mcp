@@ -29,13 +29,32 @@ An optimized Model Context Protocol (MCP) server for x64dbg debugger, enabling A
 
 ## Quick Setup
 
-### 1. Build the Plugin
+### 1. Download Pre-built Plugin
+
+Download the latest plugin from the repository:
+- **x64 version**: [MCPx64dbg.dp64](https://github.com/0xOb5k-J/x64dbg-mcp/raw/main/build/build64/Release/MCPx64dbg.dp64)
+- **x32 version**: [MCPx64dbg.dp32](https://github.com/0xOb5k-J/x64dbg-mcp/raw/main/build/build32/Release/MCPx64dbg.dp32)
+
+Copy to your x64dbg plugins folder:
+- `MCPx64dbg.dp64` → `x64dbg/release/x64/plugins/`
+- `MCPx64dbg.dp32` → `x64dbg/release/x32/plugins/`
+
+### 2. Install Python Server
 
 ```bash
 # Clone the repository
 git clone https://github.com/0xOb5k-J/x64dbg-mcp.git
 cd x64dbg-mcp
 
+# Install dependencies
+pip install mcp
+```
+
+### 3. (Optional) Build Plugin Manually
+
+If you prefer to compile the plugin yourself:
+
+```bash
 # Build both 32-bit and 64-bit plugins
 cmake -S . -B build
 cmake --build build --target all_plugins --config Release
@@ -45,13 +64,11 @@ cmake -S . -B build -A x64 -DBUILD_BOTH_ARCHES=OFF
 cmake --build build --config Release
 ```
 
-### 2. Install Plugin
+Built plugins will be at:
+- `build/build64/Release/MCPx64dbg.dp64`
+- `build/build32/Release/MCPx64dbg.dp32`
 
-Copy the compiled plugin to x64dbg:
-- `build/build64/Release/MCPx64dbg.dp64` → `x64dbg/release/x64/plugins/`
-- `build/build32/Release/MCPx64dbg.dp32` → `x64dbg/release/x32/plugins/`
-
-### 3. Configure Claude Desktop
+### 4. Configure Claude Desktop
 
 Add to `claude_desktop_config.json`:
 
@@ -66,7 +83,7 @@ Add to `claude_desktop_config.json`:
 }
 ```
 
-### 4. Start Debugging
+### 5. Start Debugging
 
 1. Launch x64dbg and load a binary
 2. Start Claude Desktop

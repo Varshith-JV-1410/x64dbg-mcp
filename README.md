@@ -43,7 +43,7 @@ Copy to your x64dbg plugins folder:
 
 ```bash
 # Clone the repository
-git clone https://github.com/0xOb5k-J/x64dbg-mcp.git
+git clone https://github.com/Varshith-JV-1410/x64dbg-mcp.git
 cd x64dbg-mcp
 
 # Install dependencies

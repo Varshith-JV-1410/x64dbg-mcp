@@ -2,6 +2,7 @@ import sys
 import os
 import inspect
 import json
+import time
 from typing import Any, Dict, List, Callable
 import requests
 
@@ -26,7 +27,179 @@ def set_x64dbg_server_url(url: str) -> None:
 
 mcp = FastMCP("x64dbg-mcp")
 
-def safe_get(endpoint: str, params: dict = None):
+def _to_text(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    try:
+        return json.dumps(value)
+    except Exception:
+        return str(value)
+
+
+def _parse_addr(addr: str) -> int | None:
+    try:
+        text = str(addr).strip()
+        if not text:
+            return None
+        if text.lower().startswith("0x"):
+            return int(text[2:], 16)
+        # x64dbg endpoints in this project interpret bare addresses as hex.
+        return int(text, 16)
+    except Exception:
+        return None
+
+
+def _parse_size(size: str) -> int | None:
+    text = str(size).strip()
+    if not text:
+        return None
+
+    try:
+        if text.lower().startswith("0x"):
+            return int(text[2:], 16)
+        return int(text, 10)
+    except Exception:
+        try:
+            return int(text, 0)
+        except Exception:
+            return None
+
+
+def _normalize_addr(addr: str) -> str:
+    parsed = _parse_addr(addr)
+    return f"0x{parsed:x}" if parsed is not None else str(addr)
+
+
+def _normalize_size(size: str) -> str:
+    parsed = _parse_size(size)
+    return str(parsed) if parsed is not None else str(size)
+
+
+def _is_hex_blob(text: str) -> bool:
+    cleaned = "".join(text.split()).lower()
+    if not cleaned or len(cleaned) % 2 != 0:
+        return False
+    return all(c in "0123456789abcdef" for c in cleaned)
+
+
+def _parse_maybe_hex_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        if text.lower().startswith("0x"):
+            return int(text[2:], 16)
+        return int(text, 16)
+    except Exception:
+        try:
+            return int(text, 10)
+        except Exception:
+            return None
+
+
+def _repair_invalid_json_escapes(raw: str) -> str:
+    # Fixes invalid backslash escapes from manual JSON assembly (e.g. Windows paths).
+    out: list[str] = []
+    in_string = False
+    i = 0
+    while i < len(raw):
+        ch = raw[i]
+
+        if ch == '"' and (i == 0 or raw[i - 1] != "\\"):
+            in_string = not in_string
+            out.append(ch)
+            i += 1
+            continue
+
+        if in_string and ch == "\\":
+            if i + 1 >= len(raw):
+                out.append("\\\\")
+                i += 1
+                continue
+
+            nxt = raw[i + 1]
+            if nxt in ('"', "\\", "/", "b", "f", "n", "r", "t"):
+                out.append("\\")
+                i += 1
+                continue
+
+            if nxt == "u" and i + 5 < len(raw):
+                out.append("\\")
+                i += 1
+                continue
+
+            # Invalid escape in JSON string, keep the slash as a literal backslash.
+            out.append("\\\\")
+            i += 1
+            continue
+
+        out.append(ch)
+        i += 1
+
+    return "".join(out)
+
+
+def _try_parse_json(raw: str) -> Any:
+    try:
+        return json.loads(raw)
+    except Exception:
+        pass
+
+    repaired = _repair_invalid_json_escapes(raw)
+    if repaired != raw:
+        try:
+            return json.loads(repaired)
+        except Exception:
+            pass
+
+    return None
+
+
+def _parse_pattern(pattern: str) -> list[int | None]:
+    text = pattern.strip()
+    if not text:
+        return []
+
+    tokens = text.split()
+
+    # Support compact forms like "4D5A".
+    if len(tokens) == 1:
+        compact = tokens[0]
+        if len(compact) % 2 == 0 and all(c in "0123456789abcdefABCDEF?*" for c in compact):
+            tokens = [compact[i:i + 2] for i in range(0, len(compact), 2)]
+
+    parsed: list[int | None] = []
+    for token in tokens:
+        t = token.strip()
+        if t in ("?", "??", "*"):
+            parsed.append(None)
+            continue
+        try:
+            parsed.append(int(t, 16))
+        except Exception:
+            return []
+
+    return parsed
+
+
+def _find_pattern_offset(data: bytes, needle: list[int | None]) -> int | None:
+    n = len(needle)
+    if n == 0 or len(data) < n:
+        return None
+
+    for i in range(0, len(data) - n + 1):
+        for j, b in enumerate(needle):
+            if b is not None and data[i + j] != b:
+                break
+        else:
+            return i
+
+    return None
+
+
+def safe_get(endpoint: str, params: dict = None, timeout: int = 15):
     """
     Perform a GET request with optional query parameters.
     Returns parsed JSON if possible, otherwise text content
@@ -37,7 +210,7 @@ def safe_get(endpoint: str, params: dict = None):
     url = f"{x64dbg_server_url}{endpoint}"
 
     try:
-        response = requests.get(url, params=params, timeout=15)
+        response = requests.get(url, params=params, timeout=timeout)
         response.encoding = 'utf-8'
         if response.ok:
             # Try to parse as JSON first
@@ -50,7 +223,7 @@ def safe_get(endpoint: str, params: dict = None):
     except Exception as e:
         return f"Request failed: {str(e)}"
 
-def safe_post(endpoint: str, data: dict | str):
+def safe_post(endpoint: str, data: dict | str, timeout: int = 15):
     """
     Perform a POST request with data.
     Returns parsed JSON if possible, otherwise text content
@@ -58,9 +231,9 @@ def safe_post(endpoint: str, data: dict | str):
     try:
         url = f"{x64dbg_server_url}{endpoint}"
         if isinstance(data, dict):
-            response = requests.post(url, data=data, timeout=5)
+            response = requests.post(url, data=data, timeout=timeout)
         else:
-            response = requests.post(url, data=data.encode("utf-8"), timeout=5)
+            response = requests.post(url, data=data.encode("utf-8"), timeout=timeout)
         
         response.encoding = 'utf-8'
         
@@ -193,11 +366,28 @@ def ExecCommand(cmd: str) -> dict:
         - command: The command that was executed
         - message: Status message (output goes to x64dbg Log window)
     """
-    result = safe_get("ExecCommand", {"cmd": cmd})
+    # Prefer POST body to avoid query-string encoding issues for commands with spaces.
+    result = safe_post("ExecCommand", cmd, timeout=15)
+
     if isinstance(result, dict):
         return result
-    # If we got a string error, wrap it
-    return {"success": False, "command": cmd, "message": str(result)}
+
+    if isinstance(result, str):
+        parsed = _try_parse_json(result)
+        if isinstance(parsed, dict):
+            return parsed
+
+    # Fallback to legacy GET behavior for compatibility.
+    fallback = safe_get("ExecCommand", {"cmd": cmd}, timeout=15)
+    if isinstance(fallback, dict):
+        return fallback
+
+    if isinstance(fallback, str):
+        parsed = _try_parse_json(fallback)
+        if isinstance(parsed, dict):
+            return parsed
+
+    return {"success": False, "command": cmd, "message": _to_text(fallback)}
 
 # =============================================================================
 # DEBUGGING STATUS
@@ -416,7 +606,74 @@ def MemoryRead(addr: str, size: str) -> str:
     Returns:
         Hexadecimal string representing the memory contents
     """
-    return safe_get("Memory/Read", {"addr": addr, "size": size})
+    addr_norm = _normalize_addr(addr)
+    size_norm = _normalize_size(size)
+
+    requested_size = _parse_size(size_norm)
+    start_addr = _parse_addr(addr_norm)
+    if requested_size is None or requested_size <= 0:
+        return "Error: invalid read size"
+    if start_addr is None:
+        return "Error: invalid address"
+
+    result = safe_get("Memory/Read", {"addr": addr_norm, "size": size_norm})
+    text = _to_text(result)
+    if _is_hex_blob(text):
+        return "".join(text.split())
+
+    legacy = safe_get("MemRead", {"addr": addr_norm, "size": size_norm})
+    legacy_text = _to_text(legacy)
+    if _is_hex_blob(legacy_text):
+        return "".join(legacy_text.split())
+
+    # If the target is running, pause and retry once because reads often fail while executing.
+    status = GetDebugStatus()
+    if isinstance(status, dict) and status.get("running") is True:
+        try:
+            DebugPause()
+            time.sleep(0.1)
+        except Exception:
+            pass
+
+        retry = safe_get("MemRead", {"addr": addr_norm, "size": size_norm})
+        retry_text = _to_text(retry)
+        if _is_hex_blob(retry_text):
+            return "".join(retry_text.split())
+
+    # Chunked fallback within region bounds to avoid cross-region failures.
+    max_size = requested_size
+    mem_info = GetMemoryInfo(addr_norm)
+    if isinstance(mem_info, dict):
+        region_base = _parse_maybe_hex_int(mem_info.get("base"))
+        region_size = _parse_maybe_hex_int(mem_info.get("size"))
+        if region_base is not None and region_size is not None and start_addr >= region_base:
+            region_end = region_base + region_size
+            if region_end > start_addr:
+                max_size = min(max_size, region_end - start_addr)
+
+    if max_size <= 0:
+        return text if text.lower().startswith("error") else legacy_text
+
+    offset = 0
+    chunk_size = 0x1000
+    chunks: list[str] = []
+    while offset < max_size:
+        this_size = min(chunk_size, max_size - offset)
+        this_addr = f"0x{start_addr + offset:x}"
+        piece = safe_get("MemRead", {"addr": this_addr, "size": str(this_size)})
+        piece_text = _to_text(piece)
+        if not _is_hex_blob(piece_text):
+            break
+        chunks.append("".join(piece_text.split()))
+        offset += this_size
+
+    if chunks:
+        return "".join(chunks)
+
+    # Return the most specific error message we have.
+    if legacy_text.lower().startswith("error") or legacy_text.lower().startswith("request failed"):
+        return legacy_text
+    return text
 
 @mcp.tool()
 def MemoryWrite(addr: str, data: str) -> str:
@@ -448,7 +705,19 @@ def DebugRun() -> str:
     Returns:
         Status message
     """
-    return safe_get("Debug/Run")
+    result = safe_get("Debug/Run", timeout=5)
+    text = _to_text(result)
+
+    # Some x64dbg setups block this request while process continues running.
+    if "timed out" in text.lower():
+        fallback = ExecCommand("run")
+        if isinstance(fallback, dict):
+            if fallback.get("success") is True:
+                return "Debug run command issued"
+            return str(fallback.get("message", "Debug run command status unknown"))
+        return _to_text(fallback)
+
+    return text
 
 @mcp.tool()
 def DebugPause() -> str:
@@ -602,7 +871,36 @@ def PatternFindMem(start: str, size: str, pattern: str) -> str:
     Returns:
         Found address in hex format or error message
     """
-    return safe_get("Pattern/FindMem", {"start": start, "size": size, "pattern": pattern})
+    start_norm = _normalize_addr(start)
+    size_norm = _normalize_size(size)
+
+    result = safe_get("Pattern/FindMem", {"start": start_norm, "size": size_norm, "pattern": pattern})
+    text = _to_text(result)
+
+    if text.lower().startswith("0x"):
+        return text
+
+    start_int = _parse_addr(start_norm)
+    size_int = _parse_size(size_norm)
+    needle = _parse_pattern(pattern)
+
+    if start_int is None or size_int is None or size_int <= 0 or not needle:
+        return text
+
+    mem_hex = MemoryRead(start_norm, size_norm)
+    if mem_hex.lower().startswith("error") or mem_hex.lower().startswith("request failed"):
+        return text
+
+    try:
+        mem = bytes.fromhex("".join(mem_hex.split()))
+    except Exception:
+        return text
+
+    offset = _find_pattern_offset(mem, needle)
+    if offset is None:
+        return text
+
+    return f"0x{start_int + offset:x}"
 
 # =============================================================================
 # MISC API
@@ -719,27 +1017,27 @@ def GetModuleList() -> list:
         List of module information: name, base, size, entry, sectionCount, path
     """
     result = safe_get("GetModuleList")
-    # Handle various response formats
+    # Handle various response formats, including malformed JSON with unescaped backslashes.
     if isinstance(result, list):
         return result
-    elif isinstance(result, dict):
-        # Check if this is an error wrapper with raw JSON string
+
+    if isinstance(result, dict):
         if "raw" in result and isinstance(result["raw"], str):
-            try:
-                parsed = json.loads(result["raw"])
-                if isinstance(parsed, list):
-                    return parsed
-            except:
-                pass
-        return [result]  # Return dict as single-item list
-    elif isinstance(result, str):
-        try:
-            parsed = json.loads(result)
-            if isinstance(parsed, list):
-                return parsed
+            parsed_raw = _try_parse_json(result["raw"])
+            if isinstance(parsed_raw, list):
+                return parsed_raw
+            if isinstance(parsed_raw, dict):
+                return [parsed_raw]
+        return [result]
+
+    if isinstance(result, str):
+        parsed = _try_parse_json(result)
+        if isinstance(parsed, list):
+            return parsed
+        if isinstance(parsed, dict):
             return [parsed]
-        except:
-            return [{"error": "Failed to parse module list", "raw": result}]
+        return [{"error": "Failed to parse module list", "raw": result}]
+
     return [{"error": "Unexpected response format"}]
 
 # REMOVED: Use GetMemoryInfo instead (provides base, size, valid, protect in one call)

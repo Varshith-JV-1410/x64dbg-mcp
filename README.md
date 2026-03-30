@@ -32,8 +32,8 @@ An optimized Model Context Protocol (MCP) server for x64dbg debugger, enabling A
 ### 1. Download Pre-built Plugin
 
 Download the latest plugin from the repository:
-- **x64 version**: [MCPx64dbg.dp64](https://github.com/0xOb5k-J/x64dbg-mcp/raw/main/build/build64/Release/MCPx64dbg.dp64)
-- **x32 version**: [MCPx64dbg.dp32](https://github.com/0xOb5k-J/x64dbg-mcp/raw/main/build/build32/Release/MCPx64dbg.dp32)
+- **x64 version**: [MCPx64dbg.dp64](https://github.com/Varshith-JV-1410/x64dbg-mcp/releases/download/1%2C0/MCPx64dbg.dp64)
+- **x32 version**: [MCPx64dbg.dp32](https://github.com/Varshith-JV-1410/x64dbg-mcp/releases/download/1%2C0/MCPx64dbg.dp32)
 
 Copy to your x64dbg plugins folder:
 - `MCPx64dbg.dp64` → `x64dbg/release/x64/plugins/`
